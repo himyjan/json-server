@@ -1,5 +1,3 @@
-import { randomBytes } from 'node:crypto'
-
 import inflection from 'inflection'
 import { Low } from 'lowdb'
 import sortOn from 'sort-on'
@@ -7,23 +5,13 @@ import type { JsonObject } from 'type-fest'
 
 import { matchesWhere } from './matches-where.ts'
 import { paginate, type PaginationResult } from './paginate.ts'
+import { randomId } from './random-id.ts'
 export type Item = Record<string, unknown>
 
 export type Data = Record<string, Item[] | Item>
 
 export function isItem(obj: unknown): obj is Item {
   return typeof obj === 'object' && obj !== null && !Array.isArray(obj)
-}
-
-export function isData(obj: unknown): obj is Data {
-  if (typeof obj !== 'object' || obj === null) {
-    return false
-  }
-
-  const data = obj as Record<string, unknown>
-  return Object.values(data).every((value) =>
-    Array.isArray(value) ? value.every(isItem) : isItem(value),
-  )
 }
 
 export type PaginatedItems = PaginationResult<Item>
@@ -90,35 +78,10 @@ function deleteDependents(db: Low<Data>, name: string, dependents: string[]) {
   })
 }
 
-function randomId(): string {
-  return randomBytes(2).toString('hex')
-}
-
-function fixItemsIds(items: Item[]) {
-  items.forEach((item) => {
-    if (typeof item['id'] === 'number') {
-      item['id'] = item['id'].toString()
-    }
-    if (item['id'] === undefined) {
-      item['id'] = randomId()
-    }
-  })
-}
-
-// Ensure all items have an id
-function fixAllItemsIds(data: Data) {
-  Object.values(data).forEach((value) => {
-    if (Array.isArray(value)) {
-      fixItemsIds(value)
-    }
-  })
-}
-
 export class Service {
   #db: Low<Data>
 
   constructor(db: Low<Data>) {
-    fixAllItemsIds(db.data)
     this.#db = db
   }
 
